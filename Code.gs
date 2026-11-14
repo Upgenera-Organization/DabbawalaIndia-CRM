@@ -1658,3 +1658,73 @@ function dateKeyFromCell_(v){
   m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/); if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
   const d=new Date(s); return isNaN(d)?'':dateKey_(d);
 }
+function doPost(e) {
+  try {
+    const payload = JSON.parse(
+      e.postData.contents || '{}'
+    );
+
+    // Validate API secret
+    const expectedSecret = PropertiesService
+      .getScriptProperties()
+      .getProperty('GAS_SECRET');
+
+    if (!expectedSecret || payload.secret !== expectedSecret) {
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: false,
+          message: 'Unauthorized request'
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const action = payload.action;
+    const args = payload.args || [];
+
+    if (!Array.isArray(args)) {
+      throw new Error('Invalid arguments');
+    }
+
+    // Only expose functions required by the frontend
+    const handlers = {
+      loginDeliveryBoy: loginDeliveryBoy,
+      logoutDeliveryBoy: logoutDeliveryBoy,
+      getMyDeliveryData: getMyDeliveryData,
+      markDelivered: markDelivered,
+      markNotAvailable: markNotAvailable,
+      collectDemoPayment: collectDemoPayment,
+      addDeliveryNote: addDeliveryNote,
+      getAttendanceStatus: getAttendanceStatus,
+      checkIn: checkIn,
+      getBoxDetails: getBoxDetails,
+      lookupBox: lookupBox,
+      returnBox: returnBox,
+      updateLiveLocation: updateLiveLocation,
+      getPaymentQr: getPaymentQr,
+      getAttendance: getAttendance,
+      getDemoList: getDemoList
+    };
+
+    const handler = handlers[action];
+
+    if (typeof handler !== 'function') {
+      throw new Error('Invalid API action');
+    }
+
+    const result = handler.apply(null, args);
+
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    console.error('API Error:', error);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        message: error.message || 'Internal server error'
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
