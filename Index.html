@@ -1258,24 +1258,30 @@ const $ = id => document.getElementById(id);
 const setText = (id,v) => { const e=$(id); if(e) e.textContent=v; };
 
 const run = async (fn, ...args) => {
-    const response = await fetch('/api', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            action: fn,
-            args: args
-        })
-    });
+    try {
+        const response = await fetch('/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: fn,
+                args: args
+            })
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (!response.ok) {
-        throw new Error(data.message || 'API request failed');
+        if (!response.ok) {
+            throw new Error(data.message || 'API request failed');
+        }
+
+        return data;
+
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
     }
-
-    return data;
 };
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const numSort = v => { const n=parseFloat(v); return Number.isFinite(n)?n:999999; };
